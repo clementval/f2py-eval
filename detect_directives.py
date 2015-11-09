@@ -27,12 +27,19 @@ def main(argv):
 def print_help():
    print 'detect_directives.py -i <inputfile>'
 
+def validate_claw_pragma(pragma_stmt):
+    p_claw = re.compile('^!\$claw\s*(loop\-fusion|loop\-interchange)')
+    if p_claw.match(pragma_stmt.comment):
+        print 'CLAW pragma detected: ' + pragma_stmt.comment
+    else:
+        print 'Invalid CLAW pragma: ' + pragma_stmt.comment
+
 def find_pragma(comment_stmt):
     if(comment_stmt.comment != ''):
         p_pragma = re.compile('^!\$')
-        p_claw = re.compile('^!\$claw\s*[loop\-fusion|loop\-interchange]')
+        p_claw = re.compile('^!\$claw')
         if p_claw.match(comment_stmt.comment):
-            print 'CLAW pragma detected: ' + comment_stmt.comment
+            validate_claw_pragma(comment_stmt)
         elif p_pragma.match(comment_stmt.comment):
             print 'Std pragma: ' + comment_stmt.comment
 
