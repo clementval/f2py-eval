@@ -1,6 +1,12 @@
 #!/usr/bin/env python
 
 import sys, getopt
+import fparser
+from fparser import parsefortran
+from fparser import api
+from fparser import readfortran
+from fparser import block_statements
+
 
 def main(argv):
    inputfile = ''
@@ -30,18 +36,35 @@ def main(argv):
 def print_help():
    print 'parse_file.py -i <inputfile> -o <outputfile> [-a (analyze while parsing)]'
 
+def print_block_info(block):
+   print '####### BLOCK INFORMATION #######'
+   print 'Root blocktype: ' + block.blocktype
+   print '  name:   ' + block.blocktype
+   print '  content:'
+   print block.content
+   for stmt in block.content:
+       print_stmt_info(stmt)
+
+def print_stmt_info(stmt):
+   print '####### STMT INFORMATION #######'
+   print stmt.item
+
+
 
 def f2py_parse(inputfile, outputfile, analyze=False):
-   import fparser
-   from fparser import parsefortran
-   from fparser import api
+
 
    reader = api.get_reader(inputfile, True, False, None, None)
    parser = parsefortran.FortranParser(reader, False)
-   tree = parser.parse()
+   parser.parse()
+
+   print_block_info(parser.block)
+
+
 
    if outputfile == '':
-      print parser.block
+      #print parser.block
+      outputfile = outputfile
    else:
       output = open(outputfile, 'w+')
       output_str = str(parser.block)
