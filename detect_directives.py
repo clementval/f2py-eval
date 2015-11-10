@@ -6,23 +6,23 @@ from fparser import readfortran
 import re
 
 def main(argv):
-   inputfile = ''
-   try:
-      opts, args = getopt.getopt(argv,"i:")
-   except getopt.GetoptError:
-      print_help()
-      sys.exit(2)
-   for opt, arg in opts:
-      if opt == '-h':
-         print_help()
-         sys.exit()
-      elif opt == "-i":
-         inputfile = arg
-   if inputfile == '':
-      print_help()
-      sys.exit()
-   else:
-      f2py_parse(inputfile)
+    inputfile = ''
+    try:
+       opts, args = getopt.getopt(argv,"i:")
+    except getopt.GetoptError:
+       print_help()
+       sys.exit(2)
+    for opt, arg in opts:
+       if opt == '-h':
+          print_help()
+          sys.exit()
+       elif opt == "-i":
+          inputfile = arg
+    if inputfile == '':
+       print_help()
+       sys.exit()
+    else:
+       f2py_parse(inputfile)
 
 def print_help():
    print 'detect_directives.py -i <inputfile>'
@@ -65,6 +65,12 @@ def find_pragma(comment_stmt, info):
         elif p_pragma.match(comment_stmt.comment):
             print 'Std pragma: ' + comment_stmt.comment
 
+def print_info(info):
+    print ''
+    print '### Parsing info'
+    print ' loop-fusion: ' + str(info.nbLoopFusion)
+    print ' loop-interchange: ' + str(info.nbLoopInterchange)
+
 def f2py_parse(inputfile):
     info = ClawInfo()
     reader = readfortran.FortranFileReader(inputfile)
@@ -76,11 +82,8 @@ def f2py_parse(inputfile):
                 find_pragma(line, info)
         except StopIteration:
             iterate = False
+    print_info(info)
 
-    print ''
-    print '### Parsing info'
-    print ' loop-fusion: ' + str(info.nbLoopFusion)
-    print ' loop-interchange: ' + str(info.nbLoopInterchange)
 
 
 if __name__ == "__main__":
