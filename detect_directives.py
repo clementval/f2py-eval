@@ -27,34 +27,60 @@ def main(argv):
 def print_help():
    print 'detect_directives.py -i <inputfile>'
 
-def validate_claw_pragma(pragma_stmt):
+
+class ClawInfo:
+    """Small class to hold claw parsing information"""
+    nbLoopFusion = 0
+    nbLoopInterchange = 0
+
+    def incrLoopFusion(self):
+        self.nbLoopFusion += 1
+
+    def incrLoopInterchange(self):
+        self.nbLoopInterchange += 1
+
+
+def validate_claw_pragma(pragma_stmt, info):
     p_claw = re.compile('^!\$claw\s*(loop\-fusion|loop\-interchange)')
     if p_claw.match(pragma_stmt.comment):
-        print 'CLAW pragma detected: ' + pragma_stmt.comment
+        p_fusion = re.compile('^!\$claw\s*loop\-fusion')
+        p_interchange = re.compile('^!\$claw\s*loop\-fusion')
+        if p_fusion.match(pragma_stmt.comment):
+            info.incrLoopFusion()
+        elif p_interchange.match(pragma_stmt.comment):
+            info.incrLoopInterchange()
+        return True
     else:
-        print 'Invalid CLAW pragma: ' + pragma_stmt.comment
+        return False
 
-def find_pragma(comment_stmt):
+def find_pragma(comment_stmt, info):
     if(comment_stmt.comment != ''):
         p_pragma = re.compile('^!\$')
         p_claw = re.compile('^!\$claw')
         if p_claw.match(comment_stmt.comment):
-            validate_claw_pragma(comment_stmt)
+            if validate_claw_pragma(comment_stmt, info):
+                print 'CLAW pragma detected: ' + comment_stmt.comment
+            else:
+                print 'Invalid CLAW pragma: ' + comment_stmt.comment
         elif p_pragma.match(comment_stmt.comment):
             print 'Std pragma: ' + comment_stmt.comment
 
-
 def f2py_parse(inputfile):
-   reader = readfortran.FortranFileReader(inputfile)
+    info = ClawInfo()
+    reader = readfortran.FortranFileReader(inputfile)
+    iterate = True
+    while iterate:
+        try:
+            line = reader.next()
+            if isinstance(line, readfortran.Comment):
+                find_pragma(line, info)
+        except StopIteration:
+            iterate = False
 
-   iterate = True
-   while iterate:
-       try:
-           line = reader.next()
-           if isinstance(line, readfortran.Comment):
-               find_pragma(line)
-       except StopIteration:
-           iterate = False
+    print ''
+    print '### Parsing info'
+    print ' loop-fusion: ' + str(info.nbLoopFusion)
+    print ' loop-interchange: ' + str(info.nbLoopInterchange)
 
 
 if __name__ == "__main__":
