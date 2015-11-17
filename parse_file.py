@@ -74,6 +74,8 @@ class claw_parser:
         main_block = self.__parse()
         self.__process_main_block(main_block)
         self.__print_code_map()
+    #    for loop in self.__loop_fusions:
+    #        self.__loop_fusions[loop].print_info()
 
     def __print_line(self, linenum):
         print self.__code_map[linenum]
@@ -101,7 +103,7 @@ class claw_parser:
                 # check loop that can be merged
                 for i in sorted(self.__loop_fusions):
                     other_loop = self.__loop_fusions[i]
-                    if not other_loop.translated and \
+                    if (not other_loop.translated) and \
                     other_loop.get_group_label() == l_fusion.get_group_label():
                         self.__print_loop_body(other_loop)
                         other_loop.translated = True
@@ -166,8 +168,12 @@ class claw_parser:
                 if self.__is_valid_claw_pragma(comment):
                     claw_dir = self.__get_claw_directive(comment)
                     if(claw_dir == self.directives.LOOP_FUSION):
+                        # Do work for loop-fusion directive
+                        group = self.__get_group_option_value(comment)
                         self.__loop_hunting = True
-                        self.__crt_loop_fusion = loop_fusion(comment.span[0])
+                        self.__crt_loop_fusion = loop_fusion(comment.span[0], \
+                        group_label=group)
+
                     elif(claw_dir == self.directives.LOOP_INTERCHANGE):
                         print '! LOOP_INTERCHANGE'
 
@@ -229,6 +235,15 @@ class claw_parser:
             return self.directives.LOOP_FUSION
         if(p_claw_interchange.match(pragma_stmt.comment)):
             return self.directives.LOOP_INTERCHANGE
+
+    def __get_group_option_value(self, pragma_stmt):
+        p_loop_fusion_group = re.compile( \
+          '^\s*!\$claw\s*loop\-fusion\s*group\s*\((.*)\)', \
+          flags=re.IGNORECASE)
+        m = p_loop_fusion_group.match(pragma_stmt.comment)
+        if m:
+            return m.group(1)
+        return ''
 
     # error handling
     def __exit_error(self, directive = '', msg = '', linenum = 0):
