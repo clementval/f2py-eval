@@ -7,12 +7,15 @@ from fparser import api
 from fparser import readfortran
 from fparser import block_statements
 
+def enum(**enums):
+    return type('Enum', (), enums)
 
 class claw_parser:
     def __init__(self, infile, outfile, keep_pragma=True):
         self.infile = infile
         self.outfile = outfile
         self.keep_pragma = keep_pragma
+        self.directives = enum(LOOP_FUSION=1, LOOP_INTERCHANGE=2)
         self.__outputBuffer = ''
 
     def __parse(self):
@@ -61,6 +64,13 @@ class claw_parser:
             if self.__is_claw_pragma(comment):
                 # process claw pragma
                 if self.__is_valid_claw_pragma(comment):
+                    claw_dir = self.__get_claw_directive(comment)
+                    if(claw_dir == self.directives.LOOP_FUSION):
+                        print '! LOOP_FUSION'
+                    elif(claw_dir == self.directives.LOOP_INTERCHANGE):
+                        print '! LOOP_INTERCHANGE'
+
+                    # just output pragma if option is to keep them
                     if self.keep_pragma:
                         self.__add_to_buffer(comment.comment)
                 else:
@@ -105,6 +115,14 @@ class claw_parser:
         else:
             return False
 
+    # Return the type of claw pragma statement
+    def __get_claw_directive(self, pragma_stmt):
+        p_claw_fusion = re.compile('^!\$claw\s*loop\-fusion')
+        p_claw_interchange = re.compile('^!\$claw\s*loop\-fusion')
+        if(p_claw_fusion.match(pragma_stmt.comment)):
+            return self.directives.LOOP_FUSION
+        if(p_claw_interchange.match(pragma_stmt.comment)):
+            return self.directives.LOOP_INTERCHANGE
 
     # error handling
     def __exit_error(self, directive = '', msg = '', linenum = 0):
