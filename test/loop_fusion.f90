@@ -16,8 +16,13 @@ SUBROUTINE test
     print*,'body loop 2', i
   END DO
 
-  !$claw loop-fusion
+  !$claw loop-fusion group(g1)
   DO i = istart, iend
     print*,'body loop 3', i
+  END DO
+
+  !$claw loop-fusion group(g1)
+  DO i = istart, iend
+    print*,'body loop 4', i
   END DO
 END SUBROUTINE test
