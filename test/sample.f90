@@ -16,6 +16,11 @@ SUBROUTINE test
     print*,'body loop 2', i
   END DO
 
+  !$claw loop-fusion
+  DO i = istart, iend
+    print*,'body loop 2', i
+  END DO
+
   !$claw loop-interchange
   !$claw looooop-fusion
   !$acc parallel
