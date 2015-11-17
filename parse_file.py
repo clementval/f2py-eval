@@ -11,10 +11,10 @@ def enum(**enums):
     return type('Enum', (), enums)
 
 
-
 # Contains information about the loop following a loop-fusion directives.
 class loop_fusion:
-    def __init__(self, pragma_line, start_line=0, depth = 0, stop_line = 0, group_label = ''):
+    def __init__(self, pragma_line, start_line=0, depth = 0, stop_line = 0, \
+    group_label = ''):
         self.__pragma_line = pragma_line
         self.__start_line = start_line
         self.__stop_line = stop_line
@@ -47,6 +47,7 @@ class loop_fusion:
         print '  stop:  ' + str(self.__stop_line)
         print '  depth: ' + str(self.__depth)
 
+# end of class loop_fusion
 
 
 class claw_parser:
@@ -63,7 +64,6 @@ class claw_parser:
         self.__crt_loop_fusion = None
         self.__loop_fusions = {}
 
-
     def __parse(self):
         reader = api.get_reader(self.infile, True, False, None, None)
         parser = parsefortran.FortranParser(reader, False)
@@ -74,8 +74,6 @@ class claw_parser:
         main_block = self.__parse()
         self.__process_main_block(main_block)
         self.__print_code_map()
-        #for loop in sorted(self.__loop_fusions):
-        #    print self.__loop_fusions[loop].print_info()
 
     def __print_line(self, linenum):
         print self.__code_map[linenum]
@@ -103,12 +101,12 @@ class claw_parser:
                 # check loop that can be merged
                 for i in sorted(self.__loop_fusions):
                     other_loop = self.__loop_fusions[i]
-                    if not other_loop.translated and other_loop.get_group_label() == l_fusion.get_group_label():
+                    if not other_loop.translated and \
+                    other_loop.get_group_label() == l_fusion.get_group_label():
                         self.__print_loop_body(other_loop)
                         other_loop.translated = True
                         self.__disable_loop_code(other_loop)
                 self.__print_line(l_fusion.get_stop_line())
-
 
     def __print_code_map(self):
         for linenum in self.__code_map:
@@ -135,7 +133,6 @@ class claw_parser:
                 self.__process_stmt(s)
             self.__crt_depth -= 1
 
-
     # Possible item types: Line, SyntaxErrorLine, Comment, MultiLine,
     # SyntaxErrorMultiLine
     def __process_item(self, stmt):
@@ -143,13 +140,16 @@ class claw_parser:
             if isinstance(stmt.item, readfortran.Comment):
                 self.__process_comment(stmt.item)
             elif isinstance(stmt.item, readfortran.Line):
-                if self.__loop_hunting and isinstance(stmt, block_statements.Do):
+                if self.__loop_hunting and \
+                isinstance(stmt, block_statements.Do):
                     linenum = self.__get_stmt_line(stmt)
                     self.__crt_loop_fusion.set_start_line(linenum)
-                if self.__loop_hunting and isinstance(stmt, block_statements.EndDo):
+                if self.__loop_hunting and \
+                isinstance(stmt, block_statements.EndDo):
                     linenum = self.__get_stmt_line(stmt)
                     self.__crt_loop_fusion.set_stop_line(linenum)
-                    self.__loop_fusions[self.__crt_loop_fusion.get_start_line()] = self.__crt_loop_fusion
+                    start_line = self.__crt_loop_fusion.get_start_line()
+                    self.__loop_fusions[start_line] = self.__crt_loop_fusion
                     self.__loop_hunting = False
                     self.__crt_loop_fusion = None
                 self.__process_line(stmt.item)
@@ -176,7 +176,8 @@ class claw_parser:
                         self.__add_to_buffer(comment.comment)
                 else:
                     # Error
-                    self.__exit_error(directive = comment.comment, linenum = comment.span[0])
+                    self.__exit_error(directive = comment.comment, linenum = \
+                    comment.span[0])
             else: # other pragma are kept in the output
                 self.__add_to_buffer(comment.comment)
         else:
@@ -186,8 +187,6 @@ class claw_parser:
         if not isinstance(line, readfortran.Line):
             return
         self.__add_to_buffer(line.line)
-
-
 
     def __add_to_buffer(self, line):
         self.__code_map[self.__crt_line] = line
@@ -213,7 +212,8 @@ class claw_parser:
     # Validate the structure of a claw pragma statement
     # For the moment accepting loop-fusion and loop-interchange wuthout option
     def __is_valid_claw_pragma(self, pragma_stmt):
-        p_claw = re.compile('^!\$claw\s*(loop\-fusion|loop\-interchange)', flags=re.IGNORECASE)
+        p_claw = re.compile('^!\$claw\s*(loop\-fusion|loop\-interchange)', \
+        flags=re.IGNORECASE)
         if p_claw.match(pragma_stmt.comment):
             return True
         else:
@@ -221,8 +221,10 @@ class claw_parser:
 
     # Return the type of claw pragma statement
     def __get_claw_directive(self, pragma_stmt):
-        p_claw_fusion = re.compile('^!\$claw\s*loop\-fusion', flags=re.IGNORECASE)
-        p_claw_interchange = re.compile('^!\$claw\s*loop\-fusion', flags=re.IGNORECASE)
+        p_claw_fusion = re.compile('^!\$claw\s*loop\-fusion', \
+        flags=re.IGNORECASE)
+        p_claw_interchange = re.compile('^!\$claw\s*loop\-fusion', \
+        flags=re.IGNORECASE)
         if(p_claw_fusion.match(pragma_stmt.comment)):
             return self.directives.LOOP_FUSION
         if(p_claw_interchange.match(pragma_stmt.comment)):
@@ -238,6 +240,9 @@ class claw_parser:
         if not linenum == 0:
             print('Line :' + str(linenum))
         sys.exit(1)
+
+# end of class claw_parser
+
 
 
 def print_help():
