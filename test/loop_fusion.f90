@@ -18,6 +18,6 @@ SUBROUTINE test
 
   !$claw loop-fusion
   DO i = istart, iend
-    print*,'body loop 2', i
+    print*,'body loop 3', i
   END DO
 END SUBROUTINE test
