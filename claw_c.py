@@ -59,7 +59,7 @@ class claw_parser:
         self.__crt_line = 1
         self.__crt_depth = 0
         self.__code_map = {}
-        self.__code_map_printed = {}
+        self.__code_map_disabled = {}
         self.__loop_hunting = False # Tells the translator to find next loop
         self.__crt_loop_fusion = None
         self.__loop_fusions = {}
@@ -85,20 +85,21 @@ class claw_parser:
 
     def __print_line(self, linenum):
         if self.outfile == '':
-            print self.__code_map[linenum]
+            if not self.__code_map_disabled[linenum]:
+                print self.__code_map[linenum]
         else:
             self.__output_buffer += self.__code_map[linenum]
             self.__output_buffer += '\n'
-        self.__code_map_printed[linenum] = True
+        self.__code_map_disabled[linenum] = True
 
     def __print_loop_body(self, l_fusion):
         for i in range(l_fusion.get_start_line() + 1, l_fusion.get_stop_line(), 1):
             self.__print_line(i)
 
     def __disable_loop_code(self, loop):
-        self.__code_map_printed[loop.get_pragma_line()] = True
-        self.__code_map_printed[loop.get_start_line()] = True
-        self.__code_map_printed[loop.get_stop_line()] = True
+        self.__code_map_disabled[loop.get_pragma_line()] = True
+        self.__code_map_disabled[loop.get_start_line()] = True
+        self.__code_map_disabled[loop.get_stop_line()] = True
 
     def __print_translation(self, linenum):
         # Check if there is a loop-fusion starting at this point
@@ -123,7 +124,7 @@ class claw_parser:
     def __print_code_map(self):
         for linenum in self.__code_map:
             self.__print_translation(linenum)
-            if not self.__code_map_printed[linenum]:
+            if not self.__code_map_disabled[linenum]:
                 self.__print_line(linenum)
 
     def print_block_info(block):
@@ -189,24 +190,26 @@ class claw_parser:
 
                     # just output pragma if option is to keep them
                     if self.keep_pragma:
-                        self.__add_to_buffer(comment.comment)
+                        self.__add_to_code_map(comment.comment)
+                    else:
+                        self.__add_to_code_map(comment.comment, True)
                 else:
                     # Error
                     self.__exit_error(directive = comment.comment, linenum = \
                     comment.span[0])
             else: # other pragma are kept in the output
-                self.__add_to_buffer(comment.comment)
+                self.__add_to_code_map(comment.comment)
         else:
-            self.__add_to_buffer(comment.comment)
+            self.__add_to_code_map(comment.comment)
 
     def __process_line(self, line):
         if not isinstance(line, readfortran.Line):
             return
-        self.__add_to_buffer(line.line)
+        self.__add_to_code_map(line.line)
 
-    def __add_to_buffer(self, line):
+    def __add_to_code_map(self, line, disabled=False):
         self.__code_map[self.__crt_line] = line
-        self.__code_map_printed[self.__crt_line] = False
+        self.__code_map_disabled[self.__crt_line] = disabled
         self.__crt_line += 1
 
     # Check if the comment is a pragma statement (starts with !$)
