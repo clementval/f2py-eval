@@ -18,6 +18,15 @@ class claw_parser:
         self.directives = enum(LOOP_FUSION=1, LOOP_INTERCHANGE=2)
         self.__outputBuffer = ''
 
+        self.__current_buffer = self.__outputBuffer
+
+        self.__buffering = True      # Tells the translator to buffer or not in
+                                     # the main output buffer
+        self.__loop_hunting = False  # Tells the translator to find next loop
+
+        self.__loop_fusion_buffer = ''
+        self.__temp_buffer = ''
+
     def __parse(self):
         reader = api.get_reader(self.infile, True, False, None, None)
         parser = parsefortran.FortranParser(reader, False)
@@ -51,11 +60,18 @@ class claw_parser:
     # Possible item types: Line, SyntaxErrorLine, Comment, MultiLine,
     # SyntaxErrorMultiLine
     def __process_item(self, stmt):
+        if self.__loop_hunting and isinstance(stmt, block_statements.EndDo):
+                self.__loop_hunting = False
+                self.__buffering = True
+
         if hasattr(stmt, 'item'):
             if isinstance(stmt.item, readfortran.Comment):
                 self.__process_comment(stmt.item)
             elif isinstance(stmt.item, readfortran.Line):
                 self.__process_line(stmt.item)
+
+        if self.__loop_hunting and isinstance(stmt, block_statements.Do):
+            self.__buffering = False
 
     def __process_comment(self, comment):
         if not isinstance(comment, readfortran.Comment):
@@ -66,7 +82,7 @@ class claw_parser:
                 if self.__is_valid_claw_pragma(comment):
                     claw_dir = self.__get_claw_directive(comment)
                     if(claw_dir == self.directives.LOOP_FUSION):
-                        print '! LOOP_FUSION'
+                        self.__loop_hunting = True
                     elif(claw_dir == self.directives.LOOP_INTERCHANGE):
                         print '! LOOP_INTERCHANGE'
 
@@ -75,7 +91,7 @@ class claw_parser:
                         self.__add_to_buffer(comment.comment)
                 else:
                     # Error
-                    self.__exit_error(directive = comment.comment, linenum = 10)
+                    self.__exit_error(directive = comment.comment, linenum = comment.span[0])
             else: # other pragma are kept in the output
                 self.__add_to_buffer(comment.comment)
         else:
@@ -86,9 +102,19 @@ class claw_parser:
             return
         self.__add_to_buffer(line.line)
 
+
+
     def __add_to_buffer(self, line):
-        self.__outputBuffer += line
-        self.__outputBuffer += '\n'
+        if self.__buffering:
+            if(not self.__loop_fusion_buffer == ''):
+                self.__outputBuffer += self.__loop_fusion_buffer
+                self.__loop_fusion_buffer = ''
+            self.__outputBuffer += line
+            self.__outputBuffer += '\n'
+        else:
+            if self.__loop_hunting:
+                self.__loop_fusion_buffer += line
+                self.__loop_fusion_buffer += '\n'
 
     # Check if the comment is a pragma statement (starts with !$)
     def __is_pragma(self, comment_stmt):
