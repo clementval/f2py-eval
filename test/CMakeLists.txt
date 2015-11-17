@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 2.8)
 
+project(claw_c_test)
+
 enable_language (Fortran)
 enable_testing ()
 
