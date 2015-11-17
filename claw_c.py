@@ -49,12 +49,14 @@ class loop_fusion:
     def get_depth(self):
         return self.__depth
 
-    def set_iteration_range(self, induction_var, lower_bound, upper_bound, \
-    step):
-        self.induction_var = induction_var
-        self.lower_bound = lower_bound
-        self.upper_bound = upper_bound
-        self.step = step
+    def set_iteration_range(self, line):
+        p_iter = re.compile('([^=]*)=([^,]*),([^,]*),?([^,]*)?')
+        m = p_iter.match(line)
+        if m:
+            self.induction_var = m.group(1).strip()
+            self.lower_bound = m.group(2).strip()
+            self.upper_bound = m.group(3).strip()
+            self.step = m.group(4).strip()
 
     def __is_iteration_range_identical(self, other_loop):
         if not self.induction_var == other_loop.induction_var:
@@ -77,10 +79,13 @@ class loop_fusion:
         return self.__is_iteration_range_identical(other_loop)
 
     def print_info(self):
-        print 'loop-fusion ' + self.__group_label
-        print '  start: ' + str(self.__start_line)
-        print '  stop:  ' + str(self.__stop_line)
-        print '  depth: ' + str(self.__depth)
+        print 'loop-fusion  ' + self.__group_label
+        print '  start:     ' + str(self.__start_line)
+        print '  stop:      ' + str(self.__stop_line)
+        print '  depth:     ' + str(self.__depth)
+        print '  iteration: ' + str(self.induction_var) + '=' + \
+        str(self.lower_bound) + ',' + str(self.upper_bound) + ',' + \
+        str(self.step)
 
 # end of class loop_fusion
 
@@ -187,10 +192,16 @@ class claw_parser:
             if isinstance(stmt.item, readfortran.Comment):
                 self.__process_comment(stmt.item)
             elif isinstance(stmt.item, readfortran.Line):
+
+                # Found start of DO block
                 if self.__loop_hunting and \
                 isinstance(stmt, block_statements.Do):
                     linenum = self.__get_stmt_line(stmt)
                     self.__crt_loop_fusion.set_start_line(linenum)
+                    self.__crt_loop_fusion.set_iteration_range(\
+                      self.__get_line(stmt.item)\
+                    )
+                # Found end of DO block
                 if self.__loop_hunting and \
                 isinstance(stmt, block_statements.EndDo):
                     linenum = self.__get_stmt_line(stmt)
@@ -199,6 +210,7 @@ class claw_parser:
                     self.__loop_fusions[start_line] = self.__crt_loop_fusion
                     self.__loop_hunting = False
                     self.__crt_loop_fusion = None
+
                 self.__process_line(stmt.item)
 
     def __get_stmt_line(self, stmt):
@@ -218,7 +230,7 @@ class claw_parser:
                         self.__loop_hunting = True
                         self.__crt_loop_fusion = loop_fusion(comment.span[0], \
                         depth=self.__crt_depth, group_label=group)
-                        
+
                     elif(claw_dir == self.directives.LOOP_INTERCHANGE):
                         print '! LOOP_INTERCHANGE'
 
@@ -240,6 +252,11 @@ class claw_parser:
         if not isinstance(line, readfortran.Line):
             return
         self.__add_to_code_map(line.line)
+
+    def __get_line(self, line):
+        if not isinstance(line, readfortran.Line):
+            return ''
+        return line.line
 
     def __add_to_code_map(self, line, disabled=False):
         self.__code_map[self.__crt_line] = line
