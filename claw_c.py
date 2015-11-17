@@ -21,6 +21,11 @@ class loop_fusion:
         self.__depth = depth
         self.__group_label = group_label
 
+        self.induction_var = ''
+        self.lower_bound = ''
+        self.upper_bound = ''
+        self.step = ''
+
         self.translated = False
 
     def set_stop_line(self, stop_line):
@@ -41,11 +46,39 @@ class loop_fusion:
     def get_group_label(self):
         return self.__group_label
 
+    def set_iteration_range(self, induction_var, lower_bound, upper_bound, \
+    step):
+        self.induction_var = induction_var
+        self.lower_bound = lower_bound
+        self.upper_bound = upper_bound
+        self.step = step
+
+    def __is_iteration_range_identical(self, other_loop):
+        if not self.induction_var == other_loop.induction_var:
+            return False
+        if not self.lower_bound == other_loop.lower_bound:
+            return False
+        if not self.upper_bound == other_loop.upper_bound:
+            return False
+        if not self.step == other_loop.step:
+            return False
+        return True
+
+    def can_be_merged(self, other_loop):
+        if other_loop.translated:
+            return False
+        if not other_loop.get_group_label() == self.get_group_label():
+            return False
+        return self.__is_iteration_range_identical(other_loop)
+
     def print_info(self):
         print 'loop-fusion ' + self.__group_label
         print '  start: ' + str(self.__start_line)
         print '  stop:  ' + str(self.__stop_line)
         print '  depth: ' + str(self.__depth)
+
+
+
 
 # end of class loop_fusion
 
@@ -114,8 +147,7 @@ class claw_parser:
                 # check loop that can be merged
                 for i in sorted(self.__loop_fusions):
                     other_loop = self.__loop_fusions[i]
-                    if (not other_loop.translated) and \
-                    other_loop.get_group_label() == l_fusion.get_group_label():
+                    if l_fusion.can_be_merged(other_loop):
                         self.__print_loop_body(other_loop)
                         other_loop.translated = True
                         self.__disable_loop_code(other_loop)
