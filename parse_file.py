@@ -205,7 +205,7 @@ class claw_parser:
     # Check if the pragma statement starts with !$claw
     def __is_claw_pragma(self, comment_stmt):
         if(comment_stmt.comment != ''):
-            p_pragma = re.compile('^!\$claw')
+            p_pragma = re.compile('^!\$claw', flags=re.IGNORECASE)
             if(p_pragma.match(comment_stmt.comment)):
                 return True
         return False
@@ -213,7 +213,7 @@ class claw_parser:
     # Validate the structure of a claw pragma statement
     # For the moment accepting loop-fusion and loop-interchange wuthout option
     def __is_valid_claw_pragma(self, pragma_stmt):
-        p_claw = re.compile('^!\$claw\s*(loop\-fusion|loop\-interchange)')
+        p_claw = re.compile('^!\$claw\s*(loop\-fusion|loop\-interchange)', flags=re.IGNORECASE)
         if p_claw.match(pragma_stmt.comment):
             return True
         else:
@@ -221,8 +221,8 @@ class claw_parser:
 
     # Return the type of claw pragma statement
     def __get_claw_directive(self, pragma_stmt):
-        p_claw_fusion = re.compile('^!\$claw\s*loop\-fusion')
-        p_claw_interchange = re.compile('^!\$claw\s*loop\-fusion')
+        p_claw_fusion = re.compile('^!\$claw\s*loop\-fusion', flags=re.IGNORECASE)
+        p_claw_interchange = re.compile('^!\$claw\s*loop\-fusion', flags=re.IGNORECASE)
         if(p_claw_fusion.match(pragma_stmt.comment)):
             return self.directives.LOOP_FUSION
         if(p_claw_interchange.match(pragma_stmt.comment)):
