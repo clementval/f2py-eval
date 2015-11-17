@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import sys, getopt
+import sys, getopt, re
 import fparser
 from fparser import parsefortran
 from fparser import api
@@ -57,14 +57,65 @@ class claw_parser:
     def __process_comment(self, comment):
         if not isinstance(comment, readfortran.Comment):
             return
-        self.__outputBuffer += comment.comment
-        self.__outputBuffer += '\n'
+        if self.__is_pragma(comment):
+            if self.__is_claw_pragma(comment):
+                # process claw pragma
+                if self.__is_valid_claw_pragma(comment):
+                    if self.keep_pragma:
+                        self.__add_to_buffer(comment.comment)
+                else:
+                    # Error
+                    self.__exit_error(directive = comment.comment, linenum = 10)
+            else: # other pragma are kept in the output
+                self.__add_to_buffer(comment.comment)
+        else:
+            self.__add_to_buffer(comment.comment)
 
     def __process_line(self, line):
         if not isinstance(line, readfortran.Line):
             return
-        self.__outputBuffer += line.line
+        self.__add_to_buffer(line.line)
+
+    def __add_to_buffer(self, line):
+        self.__outputBuffer += line
         self.__outputBuffer += '\n'
+
+    # Check if the comment is a pragma statement (starts with !$)
+    def __is_pragma(self, comment_stmt):
+        if(comment_stmt.comment != ''):
+            p_pragma = re.compile('^!\$')
+            if(p_pragma.match(comment_stmt.comment)):
+                return True
+        return False
+
+    # Check if the pragma statement starts with !$claw
+    def __is_claw_pragma(self, comment_stmt):
+        if(comment_stmt.comment != ''):
+            p_pragma = re.compile('^!\$claw')
+            if(p_pragma.match(comment_stmt.comment)):
+                return True
+        return False
+
+    # Validate the structure of a claw pragma statement
+    # For the moment accepting loop-fusion and loop-interchange wuthout option
+    def __is_valid_claw_pragma(self, pragma_stmt):
+        p_claw = re.compile('^!\$claw\s*(loop\-fusion|loop\-interchange)')
+        if p_claw.match(pragma_stmt.comment):
+            return True
+        else:
+            return False
+
+
+    # error handling
+    def __exit_error(self, directive = '', msg = '', linenum = 0):
+        print('File: "' + self.infile + '", line ' + str(linenum))
+        if directive:
+            print('SyntaxError: Invalid claw directive - ' + directive)
+        if msg:
+            print('Message: ' + msg)
+        if not linenum == 0:
+            print('Line :' + str(linenum))
+        sys.exit(1)
 
 
 def print_help():
