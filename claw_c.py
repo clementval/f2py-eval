@@ -271,31 +271,34 @@ class claw_parser:
 
 
 def print_help():
-   print 'claw_c.py -i <inputfile> -o <outputfile>'
+    print 'claw_c.py -i <inputfile> [-o <outputfile>] [-p]'
+    print '  -p : Remove the claw directives in transformed code'
 
 def main(argv):
-   inputfile = ''
-   outputfile = ''
-   analyze = False
-   try:
-      opts, args = getopt.getopt(argv,"hai:o:")
-   except getopt.GetoptError:
-      print_help()
-      sys.exit(2)
-   for opt, arg in opts:
-      if opt == '-h':
-         print_help()
-         sys.exit()
-      elif opt == "-i":
-         inputfile = arg
-      elif opt == "-o":
-         outputfile = arg
-   if inputfile == '':
-      print_help()
-      sys.exit()
-   else:
-      claw = claw_parser(inputfile, outputfile)
-      claw.translate()
+    inputfile = ''
+    outputfile = ''
+    keep_pragma = True
+    try:
+        opts, args = getopt.getopt(argv,"hpi:o:")
+    except getopt.GetoptError:
+        print_help()
+        sys.exit(2)
+    for opt, arg in opts:
+        if opt == '-h':
+            print_help()
+            sys.exit()
+        elif opt == "-i":
+            inputfile = arg
+        elif opt == "-o":
+            outputfile = arg
+        elif opt == "-p":
+            keep_pragma = False
+    if inputfile == '':
+        print_help()
+        sys.exit()
+    else:
+        claw = claw_parser(inputfile, outputfile, keep_pragma=keep_pragma)
+        claw.translate()
 
 if __name__ == "__main__":
-   main(sys.argv[1:])
+    main(sys.argv[1:])
