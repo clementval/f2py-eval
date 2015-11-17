@@ -255,7 +255,7 @@ class claw_parser:
           flags=re.IGNORECASE)
         m = p_loop_fusion_group.match(pragma_stmt.comment)
         if m:
-            return m.group(1)
+            return m.group(1).strip()
         return ''
 
     # error handling

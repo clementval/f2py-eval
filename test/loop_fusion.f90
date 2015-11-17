@@ -18,7 +18,7 @@ SUBROUTINE test
 
   print*,'betweenloop'
 
-  !$claw loop-fusion group(g1)
+  !$claw loop-fusion group(g1 )
   DO i = istart, iend
     print*,'body loop 3', i
   END DO
