@@ -22,14 +22,23 @@ class loop_fusion:
     def set_stop_line(self, stop_line):
         self.__stop_line = stop_line
 
+
+    def get_stop_line(self):
+        return self.__stop_line
+
     def get_start_line(self):
         return self.__start_line
+
+    def get_group_label(self):
+        return self.__group_label
+
 
     def print_info(self):
         print 'loop-fusion ' + self.__group_label
         print '  start: ' + str(self.__start_line)
         print '  stop:  ' + str(self.__stop_line)
         print '  depth: ' + str(self.__depth)
+
 
 
 
@@ -62,11 +71,43 @@ class claw_parser:
         #    print self.__loop_fusions[loop].print_info()
 
 
+    def __print_line(self, linenum):
+        print self.__code_map[linenum]
+        self.__code_map_printed[linenum] = True
+
+    def __print_loop_body(self, l_fusion):
+        for i in range(l_fusion.get_start_line() + 1, l_fusion.get_stop_line(), 1):
+            self.__print_line(i)
+
+    def __disable_loop_wrapper(self, loop):
+        self.__code_map_printed[loop.get_start_line()] = True
+        self.__code_map_printed[loop.get_stop_line()] = True
+
+    def __print_translation(self, linenum):
+        # Check if there is a loop-fusion starting at this point
+        for loop_start_linenum in sorted(self.__loop_fusions):
+            if loop_start_linenum == linenum:
+                l_fusion = self.__loop_fusions[loop_start_linenum]
+                if l_fusion.translated:
+                    continue
+                self.__print_line(l_fusion.get_start_line())
+                self.__print_loop_body(l_fusion)
+                l_fusion.translated = True
+                # check loop that can be merged
+                for i in sorted(self.__loop_fusions):
+                    other_loop = self.__loop_fusions[i]
+                    if not other_loop.translated and other_loop.get_group_label() == l_fusion.get_group_label():
+                        self.__print_loop_body(other_loop)
+                        other_loop.translated = True
+                        self.__disable_loop_wrapper(other_loop)
+                self.__print_line(l_fusion.get_stop_line())
+
+
     def __print_code_map(self):
         for linenum in self.__code_map:
+            self.__print_translation(linenum)
             if not self.__code_map_printed[linenum]:
-                print self.__code_map[linenum]
-                self.__code_map_printed[linenum] = True
+                self.__print_line(linenum)
 
     def print_block_info(block):
         print '####### BLOCK INFORMATION #######'
