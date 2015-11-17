@@ -271,7 +271,7 @@ class claw_parser:
 
 
 def print_help():
-   print 'parse_file.py -i <inputfile> -o <outputfile>'
+   print 'claw_c.py -i <inputfile> -o <outputfile>'
 
 def main(argv):
    inputfile = ''
