@@ -42,13 +42,37 @@ def print_block_info(block):
    print '  name:   ' + block.blocktype
    print '  content:'
    print block.content
-   for stmt in block.content:
-       print_stmt_info(stmt)
 
-def print_stmt_info(stmt):
-   print '####### STMT INFORMATION #######'
-   print stmt.item
 
+def process_main_block(block):
+    for stmt in block.content:
+        process_stmt(stmt)
+
+def process_stmt(stmt):
+   process_item(stmt)
+   if hasattr(stmt, 'content'):
+       for s in stmt.content:
+           process_stmt(s)
+
+
+# Possible item types: Line, SyntaxErrorLine, Comment, MultiLine,
+# SyntaxErrorMultiLine
+def process_item(stmt):
+    if hasattr(stmt, 'item'):
+        if isinstance(stmt.item, readfortran.Comment):
+            process_comment(stmt.item)
+        elif isinstance(stmt.item, readfortran.Line):
+            process_line(stmt.item)
+
+def process_comment(comment):
+    if not isinstance(comment, readfortran.Comment):
+        return
+    print comment.comment
+
+def process_line(line):
+    if not isinstance(line, readfortran.Line):
+        return
+    print line.line
 
 
 def f2py_parse(inputfile, outputfile, analyze=False):
@@ -58,8 +82,8 @@ def f2py_parse(inputfile, outputfile, analyze=False):
    parser = parsefortran.FortranParser(reader, False)
    parser.parse()
 
-   print_block_info(parser.block)
-
+   #print_block_info(parser.block)
+   process_main_block(parser.block)
 
 
    if outputfile == '':
