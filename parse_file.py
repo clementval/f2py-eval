@@ -63,6 +63,7 @@ class claw_parser:
         self.__loop_hunting = False # Tells the translator to find next loop
         self.__crt_loop_fusion = None
         self.__loop_fusions = {}
+        self.__output_buffer = ''
 
     def __parse(self):
         reader = api.get_reader(self.infile, True, False, None, None)
@@ -74,11 +75,20 @@ class claw_parser:
         main_block = self.__parse()
         self.__process_main_block(main_block)
         self.__print_code_map()
+        if not self.outfile == '':
+            f = open(self.outfile, 'w')
+            f.write(self.__output_buffer)
+            f.close()
+
     #    for loop in self.__loop_fusions:
     #        self.__loop_fusions[loop].print_info()
 
     def __print_line(self, linenum):
-        print self.__code_map[linenum]
+        if self.outfile == '':
+            print self.__code_map[linenum]
+        else:
+            self.__output_buffer += self.__code_map[linenum]
+            self.__output_buffer += '\n'
         self.__code_map_printed[linenum] = True
 
     def __print_loop_body(self, l_fusion):
