@@ -10,22 +10,43 @@ from fparser import block_statements
 def enum(**enums):
     return type('Enum', (), enums)
 
+class loop_fusion:
+    def __init__(self, start_line, depth = 0, stop_line = 0, group_label = ''):
+        self.__start_line = start_line
+        self.__stop_line = stop_line
+        self.__depth = depth
+        self.__group_label = group_label
+
+        self.translated = False
+
+    def set_stop_line(self, stop_line):
+        self.__stop_line = stop_line
+
+    def get_start_line(self):
+        return self.__start_line
+
+    def print_info(self):
+        print 'loop-fusion ' + self.__group_label
+        print '  start: ' + str(self.__start_line)
+        print '  stop:  ' + str(self.__stop_line)
+        print '  depth: ' + str(self.__depth)
+
+
+
 class claw_parser:
     def __init__(self, infile, outfile, keep_pragma=True):
         self.infile = infile
         self.outfile = outfile
         self.keep_pragma = keep_pragma
         self.directives = enum(LOOP_FUSION=1, LOOP_INTERCHANGE=2)
-        self.__outputBuffer = ''
+        self.__crt_line = 1
+        self.__crt_depth = 0
+        self.__code_map = {}
+        self.__code_map_printed = {}
+        self.__loop_hunting = False # Tells the translator to find next loop
+        self.__crt_loop_fusion = None
+        self.__loop_fusions = {}
 
-        self.__current_buffer = self.__outputBuffer
-
-        self.__buffering = True      # Tells the translator to buffer or not in
-                                     # the main output buffer
-        self.__loop_hunting = False  # Tells the translator to find next loop
-
-        self.__loop_fusion_buffer = ''
-        self.__temp_buffer = ''
 
     def __parse(self):
         reader = api.get_reader(self.infile, True, False, None, None)
@@ -36,8 +57,16 @@ class claw_parser:
     def translate(self):
         main_block = self.__parse()
         self.__process_main_block(main_block)
-        if self.outfile == '':
-            print self.__outputBuffer
+        self.__print_code_map()
+        #for loop in sorted(self.__loop_fusions):
+        #    print self.__loop_fusions[loop].print_info()
+
+
+    def __print_code_map(self):
+        for linenum in self.__code_map:
+            if not self.__code_map_printed[linenum]:
+                print self.__code_map[linenum]
+                self.__code_map_printed[linenum] = True
 
     def print_block_info(block):
         print '####### BLOCK INFORMATION #######'
@@ -53,25 +82,31 @@ class claw_parser:
     def __process_stmt(self, stmt):
         self.__process_item(stmt)
         if hasattr(stmt, 'content'):
+            self.__crt_depth += 1
             for s in stmt.content:
                 self.__process_stmt(s)
+            self.__crt_depth -= 1
 
 
     # Possible item types: Line, SyntaxErrorLine, Comment, MultiLine,
     # SyntaxErrorMultiLine
     def __process_item(self, stmt):
-        if self.__loop_hunting and isinstance(stmt, block_statements.EndDo):
-                self.__loop_hunting = False
-                self.__buffering = True
-
         if hasattr(stmt, 'item'):
             if isinstance(stmt.item, readfortran.Comment):
                 self.__process_comment(stmt.item)
             elif isinstance(stmt.item, readfortran.Line):
+                if self.__loop_hunting and isinstance(stmt, block_statements.Do):
+                    linenum = self.__get_stmt_line(stmt)
+                    self.__crt_loop_fusion = loop_fusion(linenum, depth = self.__crt_depth)
+                if self.__loop_hunting and isinstance(stmt, block_statements.EndDo):
+                    linenum = self.__get_stmt_line(stmt)
+                    self.__crt_loop_fusion.set_stop_line(linenum)
+                    self.__loop_fusions[self.__crt_loop_fusion.get_start_line()] = self.__crt_loop_fusion
+                    self.__loop_hunting = False
                 self.__process_line(stmt.item)
 
-        if self.__loop_hunting and isinstance(stmt, block_statements.Do):
-            self.__buffering = False
+    def __get_stmt_line(self, stmt):
+        return stmt.item.span[0]
 
     def __process_comment(self, comment):
         if not isinstance(comment, readfortran.Comment):
@@ -105,16 +140,9 @@ class claw_parser:
 
 
     def __add_to_buffer(self, line):
-        if self.__buffering:
-            if(not self.__loop_fusion_buffer == ''):
-                self.__outputBuffer += self.__loop_fusion_buffer
-                self.__loop_fusion_buffer = ''
-            self.__outputBuffer += line
-            self.__outputBuffer += '\n'
-        else:
-            if self.__loop_hunting:
-                self.__loop_fusion_buffer += line
-                self.__loop_fusion_buffer += '\n'
+        self.__code_map[self.__crt_line] = line
+        self.__code_map_printed[self.__crt_line] = False
+        self.__crt_line += 1
 
     # Check if the comment is a pragma statement (starts with !$)
     def __is_pragma(self, comment_stmt):
