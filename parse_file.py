@@ -13,6 +13,7 @@ class claw_parser:
         self.infile = infile
         self.outfile = outfile
         self.keep_pragma = keep_pragma
+        self.__outputBuffer = ''
 
     def __parse(self):
         reader = api.get_reader(self.infile, True, False, None, None)
@@ -23,7 +24,8 @@ class claw_parser:
     def translate(self):
         main_block = self.__parse()
         self.__process_main_block(main_block)
-
+        if self.outfile == '':
+            print self.__outputBuffer
 
     def print_block_info(block):
         print '####### BLOCK INFORMATION #######'
@@ -55,12 +57,15 @@ class claw_parser:
     def __process_comment(self, comment):
         if not isinstance(comment, readfortran.Comment):
             return
-        print comment.comment
+        self.__outputBuffer += comment.comment
+        self.__outputBuffer += '\n'
 
     def __process_line(self, line):
         if not isinstance(line, readfortran.Line):
             return
-        print line.line
+        self.__outputBuffer += line.line
+        self.__outputBuffer += '\n'
+
 
 def print_help():
    print 'parse_file.py -i <inputfile> -o <outputfile>'
