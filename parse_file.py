@@ -10,8 +10,12 @@ from fparser import block_statements
 def enum(**enums):
     return type('Enum', (), enums)
 
+
+
+# Contains information about the loop following a loop-fusion directives.
 class loop_fusion:
-    def __init__(self, start_line, depth = 0, stop_line = 0, group_label = ''):
+    def __init__(self, pragma_line, start_line=0, depth = 0, stop_line = 0, group_label = ''):
+        self.__pragma_line = pragma_line
         self.__start_line = start_line
         self.__stop_line = stop_line
         self.__depth = depth
@@ -22,9 +26,14 @@ class loop_fusion:
     def set_stop_line(self, stop_line):
         self.__stop_line = stop_line
 
-
     def get_stop_line(self):
         return self.__stop_line
+
+    def get_pragma_line(self):
+        return self.__pragma_line
+
+    def set_start_line(self, linenum):
+        self.__start_line = linenum
 
     def get_start_line(self):
         return self.__start_line
@@ -32,13 +41,11 @@ class loop_fusion:
     def get_group_label(self):
         return self.__group_label
 
-
     def print_info(self):
         print 'loop-fusion ' + self.__group_label
         print '  start: ' + str(self.__start_line)
         print '  stop:  ' + str(self.__stop_line)
         print '  depth: ' + str(self.__depth)
-
 
 
 
@@ -70,7 +77,6 @@ class claw_parser:
         #for loop in sorted(self.__loop_fusions):
         #    print self.__loop_fusions[loop].print_info()
 
-
     def __print_line(self, linenum):
         print self.__code_map[linenum]
         self.__code_map_printed[linenum] = True
@@ -79,7 +85,8 @@ class claw_parser:
         for i in range(l_fusion.get_start_line() + 1, l_fusion.get_stop_line(), 1):
             self.__print_line(i)
 
-    def __disable_loop_wrapper(self, loop):
+    def __disable_loop_code(self, loop):
+        self.__code_map_printed[loop.get_pragma_line()] = True
         self.__code_map_printed[loop.get_start_line()] = True
         self.__code_map_printed[loop.get_stop_line()] = True
 
@@ -99,7 +106,7 @@ class claw_parser:
                     if not other_loop.translated and other_loop.get_group_label() == l_fusion.get_group_label():
                         self.__print_loop_body(other_loop)
                         other_loop.translated = True
-                        self.__disable_loop_wrapper(other_loop)
+                        self.__disable_loop_code(other_loop)
                 self.__print_line(l_fusion.get_stop_line())
 
 
@@ -138,12 +145,13 @@ class claw_parser:
             elif isinstance(stmt.item, readfortran.Line):
                 if self.__loop_hunting and isinstance(stmt, block_statements.Do):
                     linenum = self.__get_stmt_line(stmt)
-                    self.__crt_loop_fusion = loop_fusion(linenum, depth = self.__crt_depth)
+                    self.__crt_loop_fusion.set_start_line(linenum)
                 if self.__loop_hunting and isinstance(stmt, block_statements.EndDo):
                     linenum = self.__get_stmt_line(stmt)
                     self.__crt_loop_fusion.set_stop_line(linenum)
                     self.__loop_fusions[self.__crt_loop_fusion.get_start_line()] = self.__crt_loop_fusion
                     self.__loop_hunting = False
+                    self.__crt_loop_fusion = None
                 self.__process_line(stmt.item)
 
     def __get_stmt_line(self, stmt):
@@ -159,6 +167,7 @@ class claw_parser:
                     claw_dir = self.__get_claw_directive(comment)
                     if(claw_dir == self.directives.LOOP_FUSION):
                         self.__loop_hunting = True
+                        self.__crt_loop_fusion = loop_fusion(comment.span[0])
                     elif(claw_dir == self.directives.LOOP_INTERCHANGE):
                         print '! LOOP_INTERCHANGE'
 
