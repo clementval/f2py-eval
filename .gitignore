@@ -1,1 +1,7 @@
 *.log
+Makefile
+*.cmake
+original_code_*
+transformed_code_*
+CMakeFiles
+Testing
