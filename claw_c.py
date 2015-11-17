@@ -46,6 +46,9 @@ class loop_fusion:
     def get_group_label(self):
         return self.__group_label
 
+    def get_depth(self):
+        return self.__depth
+
     def set_iteration_range(self, induction_var, lower_bound, upper_bound, \
     step):
         self.induction_var = induction_var
@@ -67,6 +70,8 @@ class loop_fusion:
     def can_be_merged(self, other_loop):
         if other_loop.translated:
             return False
+        if not self.get_depth() == other_loop.get_depth():
+            return False
         if not other_loop.get_group_label() == self.get_group_label():
             return False
         return self.__is_iteration_range_identical(other_loop)
@@ -76,9 +81,6 @@ class loop_fusion:
         print '  start: ' + str(self.__start_line)
         print '  stop:  ' + str(self.__stop_line)
         print '  depth: ' + str(self.__depth)
-
-
-
 
 # end of class loop_fusion
 
@@ -215,8 +217,8 @@ class claw_parser:
                         group = self.__get_group_option_value(comment)
                         self.__loop_hunting = True
                         self.__crt_loop_fusion = loop_fusion(comment.span[0], \
-                        group_label=group)
-
+                        depth=self.__crt_depth, group_label=group)
+                        
                     elif(claw_dir == self.directives.LOOP_INTERCHANGE):
                         print '! LOOP_INTERCHANGE'
 
