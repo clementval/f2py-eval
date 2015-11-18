@@ -224,15 +224,20 @@ class claw_parser:
                 # process claw pragma
                 if self.__is_valid_claw_pragma(comment):
                     claw_dir = self.__get_claw_directive(comment)
+
+                    # loop-fusion directive detected
                     if(claw_dir == self.directives.LOOP_FUSION):
-                        # Do work for loop-fusion directive
+                        # get the group option value if defined
                         group = self.__get_group_option_value(comment)
                         self.__loop_hunting = True
                         self.__crt_loop_fusion = loop_fusion(comment.span[0], \
                         depth=self.__crt_depth, group_label=group)
 
+                    # loop-interchange directive detected
                     elif(claw_dir == self.directives.LOOP_INTERCHANGE):
-                        print '! LOOP_INTERCHANGE'
+                        # Get reorder option value if defined
+                        reorder = self.__get_reorder_option_value(comment)
+
 
                     # just output pragma if option is to keep them
                     if self.keep_pragma:
@@ -305,6 +310,15 @@ class claw_parser:
           '^\s*!\$claw\s*loop\-fusion\s*group\s*\((.*)\)', \
           flags=re.IGNORECASE)
         m = p_loop_fusion_group.match(pragma_stmt.comment)
+        if m:
+            return m.group(1).strip()
+        return ''
+
+    def __get_reorder_option_value(self, pragma_stmt):
+        p_loop_interchange_reorder = re.compile( \
+          '^\s*!\$claw\s*loop\-interchange\s*\((.*)\)', \
+          flags=re.IGNORECASE)
+        m = p_loop_interchange_reorder.match(pragma_stmt.comment)
         if m:
             return m.group(1).strip()
         return ''
