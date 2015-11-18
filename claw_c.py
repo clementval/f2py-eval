@@ -101,6 +101,7 @@ class claw_parser:
         self.__code_map = {}
         self.__code_map_disabled = {}
         self.__loop_hunting = False # Tells the translator to find next loop
+        self.__loop_hunting_depth = 0
         self.__crt_loop_fusion = None
         self.__loop_fusions = {}
         self.__output_buffer = ''
@@ -195,12 +196,14 @@ class claw_parser:
 
                 # Found start of DO block
                 if self.__loop_hunting and \
-                isinstance(stmt, block_statements.Do):
+                isinstance(stmt, block_statements.Do) and \
+                self.__crt_depth == self.__loop_hunting_depth:
                     linenum = self.__get_stmt_line(stmt)
                     self.__crt_loop_fusion.set_start_line(linenum)
                     self.__crt_loop_fusion.set_iteration_range(\
                       self.__get_line(stmt.item)\
                     )
+
                 # Found end of DO block
                 if self.__loop_hunting and \
                 isinstance(stmt, block_statements.EndDo):
@@ -230,6 +233,7 @@ class claw_parser:
                         # get the group option value if defined
                         group = self.__get_group_option_value(comment)
                         self.__loop_hunting = True
+                        self.__loop_hunting_depth = self.__crt_depth
                         self.__crt_loop_fusion = loop_fusion(comment.span[0], \
                         depth=self.__crt_depth, group_label=group)
 
