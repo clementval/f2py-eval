@@ -10,8 +10,32 @@ from fparser import block_statements
 def enum(**enums):
     return type('Enum', (), enums)
 
+# Contains information about the loop following a loop-interchange directive.
+class loop_interchange:
+    def __init__(self, redorder_option, pragma_line):
+        self.__reorder_option = redorder_option
+        self.__pragma_line = pragma_line
 
-# Contains information about the loop following a loop-fusion directives.
+        if self.__reorder_option == '':
+            self.__num_loops = 2
+        else:
+            self.__num_loops = 3
+
+        self.__loops = {}
+
+    def add_loop(self, loop_linenum):
+        print 'add loop' + str(loop_linenum)
+        if not 0 in self.__loops:
+            self.__loops[0] = loop_linenum
+        elif not 1 in self.__loops:
+            self.__loops[1] = loop_linenum
+        elif not 2 in self.__loops:
+            self.__loops[2] = loop_linenum
+
+# end of class loop_interchange
+
+
+# Contains information about the loop following a loop-fusion directive.
 class loop_fusion:
     def __init__(self, pragma_line, start_line=0, depth = 0, stop_line = 0, \
     group_label = ''):
@@ -105,6 +129,7 @@ class claw_parser:
         self.__loop_interchange_hunting = False
         self.__loop_interchange_hunting_depth = 0
         self.__crt_loop_fusion = None
+        self.__crt_loop_interchange = None
         self.__loop_fusions = {}
         self.__output_buffer = ''
 
@@ -211,7 +236,10 @@ class claw_parser:
                     # Try to found loop for loop-interchange
                     if self.__loop_interchange_hunting and \
                     self.__crt_depth == self.__loop_interchange_hunting_depth:
-                        linunum = self.__get_stmt_line(stmt)
+                        linenum = self.__get_stmt_line(stmt)
+                        if not self.__crt_loop_interchange == None:
+                            self.__crt_loop_interchange.add_loop(linenum)
+                            self.__loop_interchange_hunting_depth += 1
 
 
                 # Found end of DO block
@@ -253,6 +281,8 @@ class claw_parser:
                         reorder = self.__get_reorder_option_value(comment)
                         self.__loop_interchange_hunting_depth = self.__crt_depth
                         self.__loop_interchange_hunting = True
+                        self.__crt_loop_interchange = loop_interchange(reorder \
+                        , comment.span[0])
 
                     # just output pragma if option is to keep them
                     if self.keep_pragma:
