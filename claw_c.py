@@ -102,6 +102,8 @@ class claw_parser:
         self.__code_map_disabled = {}
         self.__loop_hunting = False # Tells the translator to find next loop
         self.__loop_hunting_depth = 0
+        self.__loop_interchange_hunting = False
+        self.__loop_interchange_hunting_depth = 0
         self.__crt_loop_fusion = None
         self.__loop_fusions = {}
         self.__output_buffer = ''
@@ -195,14 +197,22 @@ class claw_parser:
             elif isinstance(stmt.item, readfortran.Line):
 
                 # Found start of DO block
-                if self.__loop_hunting and \
-                isinstance(stmt, block_statements.Do) and \
-                self.__crt_depth == self.__loop_hunting_depth:
-                    linenum = self.__get_stmt_line(stmt)
-                    self.__crt_loop_fusion.set_start_line(linenum)
-                    self.__crt_loop_fusion.set_iteration_range(\
-                      self.__get_line(stmt.item)\
-                    )
+                if isinstance(stmt, block_statements.Do):
+
+                    # Try to found loop for loop-fusion
+                    if self.__loop_hunting and \
+                    self.__crt_depth == self.__loop_hunting_depth:
+                        linenum = self.__get_stmt_line(stmt)
+                        self.__crt_loop_fusion.set_start_line(linenum)
+                        self.__crt_loop_fusion.set_iteration_range(\
+                        self.__get_line(stmt.item)\
+                        )
+
+                    # Try to found loop for loop-interchange
+                    if self.__loop_interchange_hunting and \
+                    self.__crt_depth == self.__loop_interchange_hunting_depth:
+                        linunum = self.__get_stmt_line(stmt)
+
 
                 # Found end of DO block
                 if self.__loop_hunting and \
@@ -241,7 +251,8 @@ class claw_parser:
                     elif(claw_dir == self.directives.LOOP_INTERCHANGE):
                         # Get reorder option value if defined
                         reorder = self.__get_reorder_option_value(comment)
-
+                        self.__loop_interchange_hunting_depth = self.__crt_depth
+                        self.__loop_interchange_hunting = True
 
                     # just output pragma if option is to keep them
                     if self.keep_pragma:
@@ -302,7 +313,7 @@ class claw_parser:
     def __get_claw_directive(self, pragma_stmt):
         p_claw_fusion = re.compile('^\s*!\$claw\s*loop\-fusion', \
         flags=re.IGNORECASE)
-        p_claw_interchange = re.compile('^\s*!\$claw\s*loop\-fusion', \
+        p_claw_interchange = re.compile('^\s*!\$claw\s*loop\-interchange', \
         flags=re.IGNORECASE)
         if(p_claw_fusion.match(pragma_stmt.comment)):
             return self.directives.LOOP_FUSION
