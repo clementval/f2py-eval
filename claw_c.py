@@ -32,9 +32,18 @@ class loop_interchange:
             self.__loops[2] = loop_linenum
 
     def has_more_loops_to_find(self):
-        if self.__num_loops == len(self.__loops)
+        if self.__num_loops == len(self.__loops):
             return False
         return True
+
+    def get_start_line(self):
+        if not 0 in self.__loops:
+            return -1
+        return self.__loops[0]
+
+    def get_loop(self, index):
+        return self.__loops[index]
+
 
 # end of class loop_interchange
 
@@ -147,6 +156,7 @@ class claw_parser:
     def translate(self):
         main_block = self.__parse()
         self.__process_main_block(main_block)
+        self.__apply_loop_interchange()
         self.__print_code_map()
         if not self.outfile == '':
             f = open(self.outfile, 'w')
@@ -155,6 +165,16 @@ class claw_parser:
 
     #    for loop in self.__loop_fusions:
     #        self.__loop_fusions[loop].print_info()
+
+    # Apply iteration range swapping
+    def __apply_loop_interchange(self):
+        for start_line in sorted(self.__loop_interchanges):
+            loop = self.__loop_interchanges[start_line]
+            loop0 = loop.get_loop(0)
+            loop1 = loop.get_loop(1)
+            tmp = self.__code_map[loop0]
+            self.__code_map[loop0] = self.__code_map[loop1]
+            self.__code_map[loop1] = tmp
 
     def __print_line(self, linenum):
         if self.outfile == '':
@@ -246,8 +266,13 @@ class claw_parser:
                             self.__crt_loop_interchange.add_loop(linenum)
                             if self.__crt_loop_interchange.has_more_loops_to_find():
                                 self.__loop_interchange_hunting_depth += 1
-                            else
-                                # TODO add loop-interchange into the list 
+                            else:
+                                start_line = \
+                                  self.__crt_loop_interchange.get_start_line()
+                                if start_line < 0:
+                                    self.__exit_error(msg = 'loop-interchange')
+                                self.__loop_interchanges[start_line] = \
+                                  self.__crt_loop_interchange
                                 self.__crt_loop_interchange = None
                                 self.__loop_interchange_hunting_depth = 0
 
