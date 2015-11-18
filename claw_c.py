@@ -24,13 +24,17 @@ class loop_interchange:
         self.__loops = {}
 
     def add_loop(self, loop_linenum):
-        print 'add loop' + str(loop_linenum)
         if not 0 in self.__loops:
             self.__loops[0] = loop_linenum
         elif not 1 in self.__loops:
             self.__loops[1] = loop_linenum
         elif not 2 in self.__loops:
             self.__loops[2] = loop_linenum
+
+    def has_more_loops_to_find(self):
+        if self.__num_loops == len(self.__loops)
+            return False
+        return True
 
 # end of class loop_interchange
 
@@ -131,6 +135,7 @@ class claw_parser:
         self.__crt_loop_fusion = None
         self.__crt_loop_interchange = None
         self.__loop_fusions = {}
+        self.__loop_interchanges = {}
         self.__output_buffer = ''
 
     def __parse(self):
@@ -239,7 +244,12 @@ class claw_parser:
                         linenum = self.__get_stmt_line(stmt)
                         if not self.__crt_loop_interchange == None:
                             self.__crt_loop_interchange.add_loop(linenum)
-                            self.__loop_interchange_hunting_depth += 1
+                            if self.__crt_loop_interchange.has_more_loops_to_find():
+                                self.__loop_interchange_hunting_depth += 1
+                            else
+                                # TODO add loop-interchange into the list 
+                                self.__crt_loop_interchange = None
+                                self.__loop_interchange_hunting_depth = 0
 
 
                 # Found end of DO block
