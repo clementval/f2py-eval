@@ -27,9 +27,10 @@ class claw_parser:
     def translate(self):
         main_block = self.__parse()
         self.__process_main_block(main_block)
+        data = str(main_block).splitlines(True)
         if not self.outfile == '':
             f = open(self.outfile, 'w')
-            f.write(str(main_block))
+            f.writelines(data[1:])
             f.close()
         else:
             print main_block
