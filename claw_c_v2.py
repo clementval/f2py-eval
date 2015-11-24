@@ -16,6 +16,7 @@ class claw_parser:
         self.outfile = outfile
         self.keep_pragma = keep_pragma
         self.directives = enum(LOOP_FUSION=1, LOOP_INTERCHANGE=2)
+        self.__crt_block_content = None
 
     def __parse(self):
         reader = api.get_reader(self.infile, True, False, None, None)
@@ -41,26 +42,28 @@ class claw_parser:
             self.__output_buffer += '\n'
 
     def __process_main_block(self, block):
-        for stmt in block.content:
-            self.__process_stmt(stmt)
+        self.__crt_block_content = block.content
+        for i, s in enumerate(block.content):
+            self.__process_stmt(s, i)
 
-    def __process_stmt(self, stmt):
-        self.__process_item(stmt)
+    def __process_stmt(self, stmt, id):
+        self.__process_item(stmt, id)
         if hasattr(stmt, 'content'):
-            for s in stmt.content:
-                self.__process_stmt(s)
+            self.__crt_block_content = stmt.content
+            for i, s in enumerate(stmt.content):
+                self.__process_stmt(s, i)
 
     # Possible item types: Line, SyntaxErrorLine, Comment, MultiLine,
     # SyntaxErrorMultiLine
-    def __process_item(self, stmt):
+    def __process_item(self, stmt, id):
         if hasattr(stmt, 'item'):
             if isinstance(stmt.item, readfortran.Comment):
-                self.__process_comment(stmt.item)
+                self.__process_comment(stmt.item, id)
 
     def __get_stmt_line(self, stmt):
         return stmt.item.span[0]
 
-    def __process_comment(self, comment):
+    def __process_comment(self, comment, id):
         if not isinstance(comment, readfortran.Comment):
             return
         if self.__is_pragma(comment):
@@ -71,11 +74,11 @@ class claw_parser:
 
                     # loop-fusion directive detected
                     if(claw_dir == self.directives.LOOP_FUSION):
-                        print 'loop-fusion detected'
+                        print 'loop-fusion detected index:' + str(id)
 
                     # loop-interchange directive detected
                     elif(claw_dir == self.directives.LOOP_INTERCHANGE):
-                        print 'loop-interchange detected'
+                        print 'loop-interchange detected index:' + str(id)
 
                 # Invalid claw pragma
                 else:
