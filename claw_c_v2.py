@@ -27,6 +27,7 @@ class claw_parser:
     def translate(self):
         main_block = self.__parse()
         self.__process_main_block(main_block)
+        print main_block.content
         if not self.outfile == '':
             f = open(self.outfile, 'w')
             f.write(self.__output_buffer)
@@ -42,7 +43,6 @@ class claw_parser:
             self.__output_buffer += '\n'
 
     def __process_main_block(self, block):
-        print block.content
         self.__crt_block_content = block.content
         for i, s in enumerate(block.content):
             self.__process_stmt(s, i, block.content)
@@ -101,6 +101,7 @@ class claw_parser:
                                             # TODO compare iteration range
                                             loop_position = self.__next_loop_index(i, parent_block)
                                             print 'Merge with ' + str(loop_position)
+                                            del parent_block[i]
 
 
 
@@ -121,7 +122,6 @@ class claw_parser:
                 if isinstance(s, block_statements.Do):
                     return i
         return -1
-
 
     def __process_line(self, line):
         if not isinstance(line, readfortran.Line):
