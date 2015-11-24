@@ -42,28 +42,28 @@ class claw_parser:
             self.__output_buffer += '\n'
 
     def __process_main_block(self, block):
+        print block.content
         self.__crt_block_content = block.content
         for i, s in enumerate(block.content):
-            self.__process_stmt(s, i)
+            self.__process_stmt(s, i, block.content)
 
-    def __process_stmt(self, stmt, id):
-        self.__process_item(stmt, id)
+    def __process_stmt(self, stmt, id, parent_block):
+        self.__process_item(stmt, id, parent_block)
         if hasattr(stmt, 'content'):
-            self.__crt_block_content = stmt.content
             for i, s in enumerate(stmt.content):
-                self.__process_stmt(s, i)
+                self.__process_stmt(s, i, stmt.content)
 
     # Possible item types: Line, SyntaxErrorLine, Comment, MultiLine,
     # SyntaxErrorMultiLine
-    def __process_item(self, stmt, id):
+    def __process_item(self, stmt, id, parent_block):
         if hasattr(stmt, 'item'):
             if isinstance(stmt.item, readfortran.Comment):
-                self.__process_comment(stmt.item, id)
+                self.__process_comment(stmt.item, id, parent_block)
 
     def __get_stmt_line(self, stmt):
         return stmt.item.span[0]
 
-    def __process_comment(self, comment, id):
+    def __process_comment(self, comment, id, parent_block):
         if not isinstance(comment, readfortran.Comment):
             return
         if self.__is_pragma(comment):
@@ -75,6 +75,21 @@ class claw_parser:
                     # loop-fusion directive detected
                     if(claw_dir == self.directives.LOOP_FUSION):
                         print 'loop-fusion detected index:' + str(id)
+                        # find the loop associated with it
+                        pragma_position = id;
+                        loop_position = 0; # start with the next
+                        for i, s in enumerate(parent_block):
+                            if i <= pragma_position:
+                                continue
+                            else:
+                                # is statement a do loop ?
+                                if isinstance(s, block_statements.Do):
+                                    loop_position = i
+                                    print 'loop after loop-fusion is at pos ' + str(i)
+                                    break
+
+
+
 
                     # loop-interchange directive detected
                     elif(claw_dir == self.directives.LOOP_INTERCHANGE):
