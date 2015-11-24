@@ -75,7 +75,7 @@ class claw_parser:
 
                     # loop-fusion directive detected
                     if(claw_dir == self.directives.LOOP_FUSION):
-                        print 'loop-fusion detected index:' + str(id)
+                        #TODO verbose print 'loop-fusion detected index:' + str(id)
                         # find the loop associated with it
                         pragma_position = id;
                         base_group = self.__get_group_option_value(comment)
@@ -98,7 +98,6 @@ class claw_parser:
                                                 del parent_block[i] # delete pragma
                                                 loop_position = loop_position - 1
                                                 del parent_block[loop_position].content[-1]
-                                                print parent_block[loop_position].content
                                                 body = []
                                                 for j, stmt in enumerate(parent_block[base_loop_position].content):
                                                     if(j == len(parent_block[base_loop_position].content) - 1):
