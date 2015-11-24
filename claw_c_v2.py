@@ -27,20 +27,12 @@ class claw_parser:
     def translate(self):
         main_block = self.__parse()
         self.__process_main_block(main_block)
-        print main_block.content
         if not self.outfile == '':
             f = open(self.outfile, 'w')
-            f.write(self.__output_buffer)
+            f.write(str(main_block))
             f.close()
         else:
-            print 'Output'
-
-    def __print_line(self, linenum):
-        if self.outfile == '':
-            print ''
-        else:
-            self.__output_buffer += self.__code_map[linenum]
-            self.__output_buffer += '\n'
+            print main_block
 
     def __process_main_block(self, block):
         self.__crt_block_content = block.content
