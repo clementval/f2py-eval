@@ -88,7 +88,6 @@ class claw_parser:
                         pragma_position = id;
                         base_group = self.__get_group_option_value(comment)
                         base_loop_position = self.__next_loop_index(id, parent_block)
-
                         for i, s in enumerate(parent_block):
                             if i <= pragma_position:
                                 continue
@@ -100,9 +99,26 @@ class claw_parser:
                                             # loop can be merge
                                             # TODO compare iteration range
                                             loop_position = self.__next_loop_index(i, parent_block)
-                                            print 'Merge with ' + str(loop_position)
-                                            del parent_block[i]
 
+                                            if(loop_position == -1):
+                                                print 'loop not found'
+                                            else:
+                                                del parent_block[i] # delete pragma
+                                                loop_position = loop_position - 1
+                                                del parent_block[loop_position].content[-1]
+                                                print parent_block[loop_position].content
+                                                body = []
+                                                for j, stmt in enumerate(parent_block[base_loop_position].content):
+                                                    if(j == len(parent_block[base_loop_position].content) - 1):
+                                                        continue
+                                                    else:
+                                                        body.append(stmt)
+                                                for s in parent_block[loop_position].content:
+                                                    body.append(s)
+
+                                                body.append(parent_block[base_loop_position].content[-1])
+                                                parent_block[base_loop_position].content = body
+                                                del parent_block[loop_position]
 
 
                     # loop-interchange directive detected
