@@ -5,7 +5,7 @@ import fparser
 from fparser import parsefortran
 from fparser import api
 from fparser import readfortran
-from fparser import block_statements
+from fparser import block_statements, statements
 
 def enum(**enums):
     return type('Enum', (), enums)
@@ -63,6 +63,15 @@ class claw_parser:
     def __get_stmt_line(self, stmt):
         return stmt.item.span[0]
 
+    def __is_loop_fusion(self, comment):
+        if self.__is_pragma(comment) and self.__is_claw_pragma(comment) and\
+        self.__is_valid_claw_pragma(comment):
+           claw_dir = self.__get_claw_directive(comment)
+           if(claw_dir == self.directives.LOOP_FUSION):
+               return True
+           return False
+
+
     def __process_comment(self, comment, id, parent_block):
         if not isinstance(comment, readfortran.Comment):
             return
@@ -77,17 +86,21 @@ class claw_parser:
                         print 'loop-fusion detected index:' + str(id)
                         # find the loop associated with it
                         pragma_position = id;
-                        loop_position = 0; # start with the next
+                        base_group = self.__get_group_option_value(comment)
+                        base_loop_position = self.__next_loop_index(id, parent_block)
+
                         for i, s in enumerate(parent_block):
                             if i <= pragma_position:
                                 continue
                             else:
-                                # is statement a do loop ?
-                                if isinstance(s, block_statements.Do):
-                                    loop_position = i
-                                    print 'loop after loop-fusion is at pos ' + str(i)
-                                    break
-
+                                if isinstance(s, statements.Comment):
+                                    if self.__is_loop_fusion(s.item):
+                                        slave_group = self.__get_group_option_value(s.item)
+                                        if slave_group == base_group:
+                                            # loop can be merge
+                                            # TODO compare iteration range
+                                            loop_position = self.__next_loop_index(i, parent_block)
+                                            print 'Merge with ' + str(loop_position)
 
 
 
@@ -98,8 +111,17 @@ class claw_parser:
                 # Invalid claw pragma
                 else:
                     # Error
-                    self.__exit_error(directive = comment.comment, linenum = \
-                    comment.span[0])
+                    self.__exit_error(directive = comment.comment, linenum = comment.span[0])
+
+    def __next_loop_index(self, crt_position, parent_block):
+        for i, s in enumerate(parent_block):
+            if i <= crt_position:
+                continue
+            else:
+                if isinstance(s, block_statements.Do):
+                    return i
+        return -1
+
 
     def __process_line(self, line):
         if not isinstance(line, readfortran.Line):
