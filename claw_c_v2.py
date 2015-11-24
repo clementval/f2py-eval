@@ -10,6 +10,34 @@ from fparser import block_statements, statements
 def enum(**enums):
     return type('Enum', (), enums)
 
+# Contains information about the loop following a loop-fusion directive.
+class loop:
+    def __init__(self):
+        self.induction_var = ''
+        self.lower_bound = ''
+        self.upper_bound = ''
+        self.step = ''
+
+    def set_iteration_range(self, line):
+        p_iter = re.compile('([^=]*)=([^,]*),([^,]*),?([^,]*)?')
+        m = p_iter.match(line)
+        if m:
+            self.induction_var = m.group(1).strip()
+            self.lower_bound = m.group(2).strip()
+            self.upper_bound = m.group(3).strip()
+            self.step = m.group(4).strip()
+
+    def is_iteration_range_identical(self, other_loop):
+        if not self.induction_var == other_loop.induction_var:
+            return False
+        if not self.lower_bound == other_loop.lower_bound:
+            return False
+        if not self.upper_bound == other_loop.upper_bound:
+            return False
+        if not self.step == other_loop.step:
+            return False
+        return True
+
 class claw_parser:
     def __init__(self, infile, outfile, keep_pragma=True):
         self.infile = infile
@@ -81,6 +109,8 @@ class claw_parser:
                         pragma_position = id;
                         base_group = self.__get_group_option_value(comment)
                         base_loop_position = self.__next_loop_index(id, parent_block)
+                        base_loop = loop()
+                        base_loop.set_iteration_range(parent_block[base_loop_position].item.line)
                         for i, s in enumerate(parent_block):
                             if i <= pragma_position:
                                 continue
@@ -90,27 +120,32 @@ class claw_parser:
                                         slave_group = self.__get_group_option_value(s.item)
                                         if slave_group == base_group:
                                             # loop can be merge
-                                            # TODO compare iteration range
                                             loop_position = self.__next_loop_index(i, parent_block)
-
                                             if(loop_position == -1):
                                                 print 'loop not found'
                                             else:
-                                                del parent_block[i] # delete pragma
-                                                loop_position = loop_position - 1
-                                                del parent_block[loop_position].content[-1]
-                                                body = []
-                                                for j, stmt in enumerate(parent_block[base_loop_position].content):
-                                                    if(j == len(parent_block[base_loop_position].content) - 1):
-                                                        continue
-                                                    else:
-                                                        body.append(stmt)
-                                                for s in parent_block[loop_position].content:
-                                                    body.append(s)
-
-                                                body.append(parent_block[base_loop_position].content[-1])
-                                                parent_block[base_loop_position].content = body
-                                                del parent_block[loop_position]
+                                                slave_loop = loop()
+                                                slave_loop.set_iteration_range(parent_block[loop_position].item.line)
+                                                if slave_loop.is_iteration_range_identical(base_loop):
+                                                    del parent_block[i] # delete pragma
+                                                    loop_position = loop_position - 1
+                                                    del parent_block[loop_position].content[-1] # remove last line of the loop
+                                                    # create new loop body with the base loop
+                                                    body = []
+                                                    for j, stmt in enumerate(parent_block[base_loop_position].content):
+                                                        if(j == len(parent_block[base_loop_position].content) - 1):
+                                                            continue
+                                                        else:
+                                                            body.append(stmt)
+                                                    # append the slave loop to the body
+                                                    for s in parent_block[loop_position].content:
+                                                        body.append(s)
+                                                    # finish the body with the end do
+                                                    body.append(parent_block[base_loop_position].content[-1])
+                                                    # switch current body with the new body
+                                                    parent_block[base_loop_position].content = body
+                                                    # delete the slave loop
+                                                    del parent_block[loop_position]
 
 
                     # loop-interchange directive detected
